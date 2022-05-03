@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style>
+        html, body { width: 100%; height: 100%; background: white; min-width: 1400px; }
+        a {text-decoration: none; color: black;}
+        .container{ padding-top: 4px; }
+        .modal-content { visibility: hidden; }
+        .hiddenLink { text-align: center; width: 100%; }
+        .inner { width: auto; height: 100%; }
+        .hidden { visibility: hidden; max-width: 0px; max-height: 0px; }
+        .img-unresponsive { max-height: 115px; width: auto; height: auto; }
+        .border{ margin-top: 4px; width: 100%; height: 3px; background: black; }
+        .img-responsive {width: auto; height: auto; max-height: 100%; max-width: 100%; alignment: center; margin-left: auto; margin-right: auto; display: block; padding: 0px;}
+        #btn-search{ height: 40px; }
+        #btn-write{ height: 100%; width: 100%; }
+        #input-write{ height: 100%; width: 100%; margin: 0px; padding: 2px; min-width: 500px; max-height: 100px; }
+        #message-text { padding: 15px; }
+        #main { background-color: whitesmoke; border-radius: 25px; width: 75%; height: auto; margin: 10px auto; alignment: center; padding: 0px; }
+        #inner-main{ margin: 15px; width: 100%; }
+        #search{ padding-top: 1px; height: 40px; }
+        #panel{ margin-top: 10px; min-width: 720px; }
+        #header{ width: 100%; height: auto; background: white; min-width: 1100px; }
+        #panel2{ margin-top: 0px; margin-bottom: 0px; padding-bottom: 0px; min-width: 720px; }
+        #thread-container{ background: white; border-radius: 15px; margin-bottom: 10px; margin-top: 10px; }
+        #pinnedRow { height: auto; position: relative; width: auto; padding-left: 10px; padding-bottom: 15px; }
+        #pinnedCol { alignment: left; vertical-align: center; margin: 0px; width: auto; height: auto; padding: 2px; }
+        #pinnedCol2 { alignment: left; vertical-align: center; margin: 0px; width: auto; height: auto; padding: 2px; min-height: 0px;}
+        #replyRow { border: 1px double black; border-radius: 5px; padding: 1px 1px 3px; margin-left: 0px; margin-bottom: 3px; width: auto; }
+        #imgNtf { width: auto; height: 30px; margin-right: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+            <a href="https://mpt.ru" class="d-flex align-items-center mb-2 mb-lg-0 text-dark text-decoration-none">
+                <img class="bi me-2" width="47" height="47" role="img" aria-label="Bootstrap" src="https://sun1-21.userapi.com/impg/LAPCq1cdQvJ4ZcgFKsZx1ac6sldzDfBRkgLu8g/4qK_F5F_hAc.jpg?size=775x775&quality=96&sign=21292c1fce4c312d270b8111f706436b&type=album"><use xlink:href="#bootstrap"></use></img>
+            </a>
+
+            <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+                <li><a href="/main" class="nav-link fs-5 link-secondary">Студенческий форум МПТ</a></li>
+            </ul>
+
+            <a href="/notifications">
+                <img id="imgNtf" th:src="${imgNtf}"/>
+            </a>
+
+            <div class="dropdown text-end">
+                <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img th:src="${imgSrc}" alt="mdo" width="35" height="35" class="rounded-circle">
+                </a>
+                <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser1">
+                    <li><a class="dropdown-item" href="/account">Профиль</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" th:href="@{/logout}">Выйти</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="border"></div>
+</div>
+
+<div class="container d-flex flex-wrap justify-content-between" id="panel">
+    <a th:href="'/threads/'+${threadId}"><h4 th:text="${threadName}">Обсуждение</h4></a>
+    <form th:action="@{'/threads/'+${threadId}+'/search'}" method="post">
+        <div class="d-table text-end align-middle">
+            <div class="d-table-cell"><input type="search" class="form-control" placeholder="Поиск..." aria-label="Search" id="search" name="text"></div>
+            <div class="d-table-cell"><button type="submit" class="btn btn-primary" id="btn-search">Найти</button></div>
+        </div>
+    </form>
+</div>
+
+<div class="container d-flex flex-wrap justify-content-between" id="panel2">
+    <font th:text="${threadDesc}"></font>
+    <a th:href="'/threads/'+${threadId}+'/ban-list'"><font th:text="${banListLink}"></font></a>
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-center container" id="main">
+    <div id="inner-main">
+        <div class="container" id="thread-container" th:each="elements : ${messages.page}">
+            <font th:text="${elements.id}" style="visibility: hidden;" class="messageId"></font>
+            <div class="row align-items-center">
+                <div class="col-8 text-start" id="message-text">
+                    <div class="row" id="replyRow" th:each="reply : ${elements.messageReply}">
+                        <div class="col">
+                            <div class="row">
+                                <div class="col">
+                                    <i th:text="'Re: '+${reply.getMessageAuthor().getUsername()}"></i>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <font th:text="${reply.getMessageText()}" class="messageTextReply" style="font-style: normal;"></font>
+                                </div>
+                            </div>
+                            <div class="row" style="height: auto; min-height: 0px;">
+                                <div class="col-2 text-start" th:each="image, imageStat : *{reply.messageImages}" id="pinnedCol2">
+                                    <a href="#" class="thumbnail"><img class="img-unresponsive" th:src="${image.imageUrl}"></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <font th:text="${elements.messageText}" class="messageText" style="font-style: normal;"></font>
+                        </div>
+                    </div>
+                    <div class="row align-items-start" id="pinnedRow">
+                        <div class="col-2 text-start" th:each="image, imageStat : *{elements.messageImages}" id="pinnedCol">
+                            <a href="#" class="thumbnail"><img class="img-unresponsive" th:src="${image.imageUrl}"></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col text-center align-items-center justify-content-center">
+                    <a th:href="'/threads/'+${elements.thread.id}+'/delete/'+${elements.id}" class="hiddenLink">
+                        <font class="text-center" th:text="${delete}"></font>
+                    </a>
+                    <br>
+                    <a th:href="'/threads/'+${elements.thread.id}+'/ban-user/'+${elements.messageAuthor.id}" class="hiddenLink">
+                        <font class="text-center" th:text="${banOnThread}"></font>
+                    </a>
+                    <br>
+                    <a href="#">
+                        <font class="text-center reply">Ответить</font>
+                    </a>
+                </div>
+                <div class="col text-center">
+                    <a th:href="'/users/'+${elements.messageAuthor.id}">
+                        <img th:src="${elements.messageAuthor.userInfo.imageUrl}" class="rounded-circle" width="50px" height="50px"><br>
+                        <strong th:text="${elements.messageAuthor.username}" class="messageAuthor"></strong><br>
+                    </a>
+                    <small th:text="${elements.messageDatetime}"></small>
+                </div>
+            </div>
+        </div>
+        <nav aria-label="Page navigation" class="paging">
+            <ul class="pagination" th:if="${messages.page.totalPages > 1}">
+                <li class="page-item" th:classappend="${!messages.paging.isPrevEnabled()? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{'/threads/'+${threadId}+'?pageNumber=' + ${messages.paging.pageNumber - 1}}"
+                       tabindex="-1"><-</a>
+                </li>
+                <th:block th:each="item : ${messages.paging.getItems()}">
+                    <li class="page-item" th:classappend="${item.index == messages.paging.pageNumber? 'active' : ''}"
+                        th:if="${item.pageItemType.name() == 'PAGE'}">
+                        <a class="page-link" th:href="@{'/threads/'+${threadId}+'?pageNumber=' + ${item.index}}"
+                           th:text="${item.index}"></a>
+                    </li>
+                    <li class="page-item disabled" th:if="${item.pageItemType.name() == 'DOTS'}">
+                        <a class="page-link" href="#">...</a>
+                    </li>
+                </th:block>
+                <li class="page-item" th:classappend="${!messages.paging.isNextEnabled()? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{'/threads/'+${threadId}+'?pageNumber=' + ${messages.paging.pageNumber + 1}}">-></a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<form class="justify-content-start mt-3" th:action="@{'/threads/'+${threadId}+'/add'}" method="post" enctype="multipart/form-data">
+    <table style="margin: auto; padding-left: 5%;">
+        <tbody>
+        <tr id="sendingReplyRow">
+            <td>
+                <label type="text" class="inner text-start" id="replyShowText"></label>
+                <button class="btn btn-primary" id="replyCancel" type="button" style="width: 35px; height: 100%;">x</button>
+            </td>
+            <td>
+                <input type="number" class="form-control inner hidden" name="replyId" id="replyId" style="visibility: hidden;"/>
+            </td>
+        </tr>
+        <tr>
+            <td rowspan="2" style="height:100px; max-height: 100px;">
+                <textarea class="form-control" id="input-write" placeholder="Текст" rows="5" name="text"></textarea>
+            </td>
+            <td style="height:50px;">
+                <button type="submit" class="btn btn-primary" id="btn-write">Отправить</button>
+            </td>
+        </tr>
+        <tr>
+            <td class="text-center" style="height: 50px; display:flex;">
+                <button id="btn-file" style="height: 100%; width: 100%;" class="btn btn-primary" type="button">Прикрепить</button>
+                <input type="file" name="files" accept="image/jpeg, image/jpg, image/png" multiple="multiple" id="files" style="display:none;">
+                <button type="button" id="clear-btn" style="height: 100%; width: 100%;" class="btn btn-primary">x</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</form>
+
+<div class="modal fade mt-5" role="dialog" id="imgmodal">
+    <div class="modal-dialog">
+        <div class="modal-content"></div>
+        <img class="img-responsive" src="" id="show-img">
+    </div>
+</div>
+
+<!-- JavaScript Bundle with Popper -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    $(document).ready(function(){
+        //Обработка изображений
+        var pinnedImages = document.getElementsByClassName("img-unresponsive");
+        var showModal = function() {
+            var img=$(this).attr('src');
+            $("#show-img").attr('src',img);
+            $("#imgmodal").modal('show');
+        };
+        for (var i = 0; i < pinnedImages.length; i++) { pinnedImages[i].addEventListener('click', showModal, false); }
+
+        //Обработка удалённых сообщений
+        var messages = document.getElementsByClassName("messageText") + document.getElementsByClassName("messageTextReply");
+        for (var i = 0; i < messages.length; i++) { if (messages[i].textContent === "Сообщение было удалено.") { messages[i].style.fontStyle = "italic"; messages[i].style.fontWeight = "bold"; }}
+
+        //Обработка кнопок прикрепления
+        $("#clear-btn").click(function(){
+            $("#files").val("");
+        });
+        $("#btn-file").click(function(){
+            $("#files").click();
+        });
+
+        //Обработка работы ответов на сообщения
+        var btns = document.getElementsByClassName("text-center reply");
+        $.each(btns, function(index,value){
+           $(this).click(function(){
+               $("#sendingReplyRow").show();
+               $("#replyId").val($(".messageId").get(index).textContent);
+               $("#replyShowText").text("Re: "+$(".messageAuthor").get(index).textContent);
+           });
+        });
+        $("#replyCancel").click(function(){
+            $("#sendingReplyRow").hide();
+            $("#replyShowText").text("");
+            $("#replyId").val("");
+        });
+        $("#replyCancel").click();
+    });
+</script>
+
+</body>
+</html>

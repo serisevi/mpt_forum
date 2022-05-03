@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="https://www.thymeleaf.org" xmlns:c="http://www.w3.org/1999/XSL/Transform">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        aside {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100%;
+        }
+        .nav-link {
+            margin: 0px;
+            color: black;
+        }
+        #sidebar {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        hr {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        a {
+            text-decoration: none;
+            font-size: smaller;
+            text-align: left;
+        }
+        #header-name { font-weight: bold; }
+        #panel-col { padding: 0px; }
+        #stats-col { padding: 0px; }
+        .primary-button { height: 100%; width: 80%; vertical-align: center; font-size: small; }
+    </style>
+
+</head>
+<body>
+
+<div class="jumbotron vertical-center">
+    <div class="w-100 row">
+        <div class="col-2" id="panel-col">
+            <aside>
+                <div class="d-flex flex-column flex-shrink-0 p-3 bg-light" id="sidebar">
+                    <ul class="nav nav-pills flex-column mb-auto">
+                        <li>
+                            <a href="/admin" class="nav-link fs-6" id="header-name">
+                                Панель администратора
+                            </a>
+                        </li>
+                        <hr>
+                        <li>
+                            <a href="/admin/users" class="nav-link">
+                                Пользователи
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/users-roles" class="nav-link">
+                                Роли пользователей
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/users-info" class="nav-link">
+                                Персональная информация
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/users-specializations" class="nav-link">
+                                Специализации
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/threads" class="nav-link">
+                                Обсуждения
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/threads-messages" class="nav-link">
+                                Сообщения
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/threads-messages-images" class="nav-link">
+                                Прикреплённые изображения
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/local-bans" class="nav-link">
+                                Локальные блокировки
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/global-bans" class="nav-link">
+                                Глобальные блокировки
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/notifications" class="nav-link">
+                                Уведомления
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+        <div class="col" id="stats-col">
+            <h1 class="text-center">Персональная информация</h1>
+            <div class="card" style="width: 150%;">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <form th:action="@{/admin/users-info/searchFIO}" method="post">
+                            <div class="row">
+                                <div class="col text-center"><input type="text" name="search"></div>
+                                <div class="col text-center"><button class="primary-button" type="submit">Поиск (ФИО)</button></div>
+                                <div class="col text-center"><button class="primary-button" type="button" data-bs-toggle="modal" data-bs-target="#exampleModal">Добавить</button></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                            </div>
+                        </form>
+                        <form th:action="@{/admin/users-info/searchCourse}" method="post">
+                            <div class="row">
+                                <div class="col text-center"><input type="text" name="search"></div>
+                                <div class="col text-center"><button class="primary-button" type="submit">Поиск (Курс)</button></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                            </div>
+                        </form>
+                        <form th:action="@{/admin/users-info/searchSpec}" method="post">
+                            <div class="row">
+                                <div class="col text-center"><input type="text" name="search"></div>
+                                <div class="col text-center"><button class="primary-button" type="submit">Поиск (Специализация)</button></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                                <div class="col text-center"></div>
+                            </div>
+                        </form>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col text-center">ID</div>
+                            <div class="col text-center">Фамилия</div>
+                            <div class="col text-center">Имя</div>
+                            <div class="col text-center">Отчество</div>
+                            <div class="col text-center">Курс</div>
+                            <div class="col text-center">Код специализации</div>
+                            <div class="col text-center">Описание</div>
+                            <div class="col text-center">Ссылка на аватар</div>
+                            <div class="col text-center">Изменить</div>
+                            <div class="col text-center">Удалить</div>
+                        </div>
+                    </li>
+                    <li class="list-group-item" th:each="elements : ${usersInfo}">
+                        <form th:action="'/admin/users-info/change/'+${elements.id}" method="post">
+                            <div class="row">
+                                <div class="col text-center"><input type="number" name="id" th:value="${elements.id}"></div>
+                                <div class="col text-center"><input type="text" name="lastname" th:value="${elements.lastname}"></div>
+                                <div class="col text-center"><input type="text" name="firstname" th:value="${elements.firstname}"></div>
+                                <div class="col text-center"><input type="text" name="middlename" th:value="${elements.middlename}"></div>
+                                <div class="col text-center"><input type="number" name="course" th:value="${elements.course}"></div>
+                                <div class="col text-center"><input type="number" name="specialization" th:value="${elements.specialization.id}"></div>
+                                <div class="col text-center"><input type="text" name="description" th:value="${elements.description}"></div>
+                                <div class="col text-center"><input type="text" name="imageUrl" th:value="${elements.imageUrl}"></div>
+                                <div class="col text-center"><button type="submit" class="primary-button">Изменить</button></div>
+                                <div class="col text-center"><a th:href="'/admin/users-info/delete/'+${elements.id}"><button type="button" class="primary-button">Удалить</button></a></div>
+                            </div>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="@{/admin/users-info/add}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Добавление личной информации</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="lastname" class="col-form-label">Фамилия</label>
+                        <input type="text" class="form-control" id="lastname" name="lastname">
+                    </div>
+                    <div class="mb-3">
+                        <label for="firstname" class="col-form-label">Имя</label>
+                        <input type="text" class="form-control" id="firstname" name="firstname">
+                    </div>
+                    <div class="mb-3">
+                        <label for="middlename" class="col-form-label">Отчество</label>
+                        <input type="text" class="form-control" id="middlename" name="middlename">
+                    </div>
+                    <div class="mb-3">
+                        <label for="course" class="col-form-label">Курс</label>
+                        <input type="number" class="form-control" id="course" name="course">
+                    </div>
+                    <div class="mb-3">
+                        <label for="specialization" class="col-form-label">Код специлизации</label><br>
+                        <input type="number" id="specialization" name="specialization">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="col-form-label">Описание</label>
+                        <input type="text" class="form-control" id="description" name="description"/>
+                    </div>
+                    <div class="mb-3">
+                        <label for="imageUrl" class="col-form-label">Ссылка на аватар</label>
+                        <input type="text" class="form-control" id="imageUrl" name="imageUrl"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="/admin/users-info"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button></a>
+                    <button type="submit" class="btn btn-primary">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+</body>
+</html>

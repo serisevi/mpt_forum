@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-image: url("https://sun9-70.userapi.com/impg/Qf1MPsg4TYmJMgUdb7xomOfcy-LpEQTnil8Jdw/SjcSM_3FjTY.jpg?size=2560x1096&quality=96&sign=c4a12f50e3e808310cc894fade401e61&type=album");
+            background-size: auto;
+        }
+        #header{
+            width: 100%;
+            height: auto;
+            background: white;
+        }
+        .container{
+            padding-top: 4px;
+        }
+        .border{
+            margin-top: 4px;
+            width: 100%;
+            height: 3px;
+            background: black;
+        }
+        .labels {
+            font-size: 11px
+        }
+        #card{
+            vertical-align: center;
+            alignment: center;
+        }
+        #profile-card{
+            padding-top: 15px;
+            padding-bottom: 15px;
+            width: 100%;
+            background-color: whitesmoke;
+            border-radius: 15px;
+        }
+        .vertical-center {
+            min-height: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        #imgNtf {
+            width: auto;
+            height: 30px;
+            margin-right: 20px;
+        }
+    </style>
+
+</head>
+<body>
+
+<div id="header">
+    <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+            <a href="https://mpt.ru" class="d-flex align-items-center mb-2 mb-lg-0 text-dark text-decoration-none">
+                <img class="bi me-2" width="47" height="47" role="img" aria-label="Bootstrap" src="https://sun1-21.userapi.com/impg/LAPCq1cdQvJ4ZcgFKsZx1ac6sldzDfBRkgLu8g/4qK_F5F_hAc.jpg?size=775x775&quality=96&sign=21292c1fce4c312d270b8111f706436b&type=album"><use xlink:href="#bootstrap"></use></img>
+            </a>
+
+            <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+                <li><a href="/main" class="nav-link fs-5 link-secondary">Студенческий форум МПТ</a></li>
+            </ul>
+
+            <a href="/notifications">
+                <img id="imgNtf" th:src="${imgNtf}"/>
+            </a>
+
+            <div class="dropdown text-end">
+                <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img th:src="${imgSrc}" alt="mdo" width="35" height="35" class="rounded-circle">
+                </a>
+                <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser1">
+                    <li><a class="dropdown-item" href="/account">Профиль</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" th:href="@{/logout}">Выйти</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="border"></div>
+</div>
+
+<div class="jumbotron vertical-center">
+    <div class="container rounded bg-white align-items-center align-items-center">
+        <form th:action="@{/account/save}" method="post" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-3 border-right">
+                    <div class="d-flex flex-column align-items-center text-center p-3 py-5">
+                        <div id="profile-card" th:each="elements : ${users}">
+                            <img class="bi me-2 rounded-circle" width="100" height="100" role="img" aria-label="Bootstrap" th:src="${elements.userInfo.imageUrl}"/><br>
+                            <span class="mt-1 font-weight-bold" th:text="${elements.username}"></span><br>
+                            <span class="mt-1 font-weight-bold" th:text="${elements.email}"></span><br>
+                            <span class="mt-1 font-weight-bold" th:text="${elements.userInfo.lastname}+' '+${elements.userInfo.firstname}+' '+${elements.userInfo.middlename}"></span><br>
+                            <span class="mt-1 font-weight-bold" th:text="${elements.userInfo.specialization.specialization}+' ('+${elements.userInfo.course}+' курс)'"></span><br>
+                            <span class="mt-1 font-weight-bold" th:text="'Дата регистрации: '+${elements.datetime}"></span><br>
+                            <span class="mt-1 font-weight-bold"th:text="${elements.userInfo.description}"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5 border-right">
+                    <div class="p-3 py-5">
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            <h4 class="text-center">Настройка профиля</h4>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12"><label class="labels">Имя</label><input type="text" name="firstname" class="form-control" placeholder="Иван" th:value="${users.userInfo.getFirstname()}"></div>
+                            <div class="col-md-12"><label class="labels">Отчество</label><input type="text" name="middlename" class="form-control" placeholder="Иванович" th:value="${users.userInfo.getMiddlename()}"></div>
+                            <div class="col-md-12"><label class="labels">Фамилия</label><input type="text" name="lastname" class="form-control" placeholder="Иванов" th:value="${users.userInfo.getLastname()}"></div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6"><label class="labels">Курс</label><input type="number" name="course" class="form-control" step="1" min="1" max="4" th:value="${users.userInfo.getCourse()}"></div>
+                            <div class="col-md-6">
+                                <label class="labels">Специализация</label>
+                                <select type="text" name="specialization" class="form-control" th:selected="${users.userInfo.specialization.specialization}">
+                                    <option th:each="specs : ${specializations}" th:text="${specs.specialization}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-5">
+                            <div class="col-md-6 text-center"><button class="w-100 btn btn-primary profile-button" type="submit">Сохранить изменения</button></div>
+                            <div class="col-md-6 text-center"><button type="button" class="w-100 btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">Сменить пароль</button></div>
+                        </div>
+                        <div class="row mt-1">
+                            <font th:text="${message}"></font>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 py-5">
+                        <div class="mt-5 align-items-center experience">
+                            <label class="labels">Описание профиля</label>
+                            <textarea  class="form-control" placeholder="Описание" name="description" maxlength="100" rows="5" th:text="${users.userInfo.getDescription()}"></textarea>
+                        </div>
+                        <div class="mt-1 align-items-center experience">
+                            <label class="labels">Аватар</label>
+                            <div style="display: flex;">
+                                <button id="btn-file" style="height: 100%; width: 90%;" class="btn btn-primary" type="button">Прикрепить</button>
+                                <input type="file" name="files" accept="image/jpeg, image/jpg, image/png" id="files" style="display:none;">
+                                <button type="button" id="clear-btn" style="height: 100%; width: 10%;" class="btn btn-primary">x</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="@{/account/change-password}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Смена пароля</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newPassword" class="col-form-label">Новый пароль</label>
+                        <input type="text" class="form-control" id="newPassword" name="newPassword">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="/account"><button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button></a>
+                    <button type="submit" class="btn btn-primary">Изменить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    $(document).ready(function(){
+        //Обработка кнопок прикрепления
+        $("#clear-btn").click(function(){
+            $("#files").val("");
+        });
+        $("#btn-file").click(function(){
+            $("#files").click();
+        });
+    });
+</script>
+</body>
+</html>
