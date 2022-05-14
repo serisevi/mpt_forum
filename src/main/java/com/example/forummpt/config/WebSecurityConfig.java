@@ -49,8 +49,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .formLogin().loginPage("/login").defaultSuccessUrl("/main").permitAll()
                 .and()
-                .logout().permitAll().and()
-                .cors().and().csrf().disable();;
+                .logout().permitAll()
+                .and().cors().and().csrf().disable();;
     }
 
     @Bean

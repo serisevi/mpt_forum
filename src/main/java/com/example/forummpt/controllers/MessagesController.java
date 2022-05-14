@@ -120,11 +120,11 @@ public class MessagesController {
         message.setMessageText(text);
         message.setMessageAuthor(user);
         message.setThread(thread);
+        message.setMessageDatetime(new Timestamp(System.currentTimeMillis()));
         LocalBanList localBan = localBanListRepository.searchByBanThreadAndBannedUser(thread, user);
         if (text.equals("") == false && text != null && localBan == null) {
             if (globalBan == null || currentDate.after(globalBan.getBanExpireDate())) {
                 messagesRepository.save(message);
-                message.setMessageDatetime(new Timestamp(System.currentTimeMillis()));
                 if (replyId != null) {
                     message.setMessageReply(messagesRepository.searchById(Long.valueOf(replyId)));
                     Notifications notification = new Notifications();

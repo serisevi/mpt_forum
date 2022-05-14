@@ -3,13 +3,19 @@ package com.example.forummpt.controllers;
 import com.example.forummpt.dto.*;
 import com.example.forummpt.models.*;
 import com.example.forummpt.repo.*;
-import com.example.forummpt.services.ThreadsService;
+import com.example.forummpt.services.*;
+import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -29,11 +35,356 @@ public class ApiController {
     @Autowired private ResetCodesRepo resetCodesRepository;
     @Autowired private SpecializationsRepo specializationsRepository;
     @Autowired private UsersRepo usersRepository;
+    @Autowired private ApiSessionsRepo apiSessionsRepository;
     private final ThreadsService threadsService;
-    @Autowired public ApiController(ThreadsService threadsService) {
+    private final MessagesService messagesService;
+    @Autowired public ApiController(MessagesService messagesService, ThreadsService threadsService) {
+        this.messagesService = messagesService;
         this.threadsService = threadsService;
     }
     //endregion
+
+    //region App
+
+    private Boolean validateToken(String token) {
+        ApiSessions session = apiSessionsRepository.searchByToken(token);
+        if (session != null) { return true; } else { return  false; }
+    }
+
+    private void sendEmail(String recipient, String subject, String text) {
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", true);
+        props.put("mail.smtp.starttls.enable", true);
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() { return new PasswordAuthentication("mptforumbot@gmail.com", "mptforum"); }
+                });
+        try {
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress("mptforumbot@gmail.com"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
+            message.setSubject(subject);
+            message.setText(text);
+            Transport.send(message);
+        } catch (MessagingException e) { System.out.println(e.toString()); throw new RuntimeException(e); }
+    }
+
+    @PostMapping("/threads/count-pages")
+    public ApiResponse getThreadsCount(String token) {
+        if (validateToken(token) == true) {
+            Double threadCount = Double.valueOf(threadsRepository.count());
+            Integer pagesCount = (int) Math.ceil(threadCount/10.0);
+            return new ApiResponse(pagesCount.toString());
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/threads/page/{id}")
+    public List<ThreadDTO> getThreadsByPage(@PathVariable(value = "id") Integer id, String token) {
+        List<ThreadDTO> dto = new ArrayList<>();
+        if (validateToken(token) == true) {
+            List<Threads> list = threadsService.getPage(id, 10).getPage().getContent();
+            for (int i = 0; i < list.size(); i++) { dto.add(new ThreadDTO(list.get(i))); }
+            return dto;
+        }
+        return dto;
+    }
+
+    @PostMapping("/threads/search")
+    public List<ThreadDTO> searchThreads(String token, String text) {
+        List<ThreadDTO> dto = new ArrayList<>();
+        if (validateToken(token) == true) {
+            List<Threads> list = threadsRepository.searchByThreadAuthor_UsernameOrThreadNameContainsOrThreadDescriptionContains(text, text, text);
+            for (int i = 0; i < list.size(); i++) { dto.add(new ThreadDTO(list.get(i))); }
+            return dto;
+        }
+        return dto;
+    }
+
+    @PostMapping("/threads/post")
+    public ApiResponse postThread(String token, String name, String description, java.sql.Date creationTime, Long userId) {
+        if (validateToken(token) == true) {
+            try {
+                Threads thread = new Threads();
+                thread.setThreadName(name);
+                thread.setThreadDescription(description);
+                thread.setThreadCreationTime(creationTime);
+                thread.setThreadAuthor(usersRepository.searchById(userId));
+                threadsRepository.save(thread);
+                return new ApiResponse("success");
+            }
+            catch (Exception e) { return new ApiResponse("error"); }
+        }
+        return new ApiResponse("error");
+    }
+
+    @RequestMapping(path = "/messages/images/upload", method = RequestMethod.POST, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE } )
+    public ApiResponse uploadImage(@RequestParam MultipartFile file, @RequestParam Long messageId, @RequestParam String token) {
+        if (validateToken(token) == true) {
+            try {
+                String uploadDir = "uploaded-images/";
+                int idName = (int) messageImageRepository.findAll(Sort.by(Sort.Direction.DESC, "id")).get(0).getId();
+                idName++;
+                FileUploadService.saveFile(uploadDir, String.valueOf(idName)+".jpg", file);
+                String imagePath = "/"+uploadDir+idName+".jpg";
+                MessageImages messageImage = new MessageImages();
+                messageImage.setMessage(messagesRepository.searchById(messageId));
+                messageImage.setImageUrl(imagePath);
+                messageImageRepository.save(messageImage);
+                return new ApiResponse("success");
+            }
+            catch (IOException e) { throw new RuntimeException(e); }
+        }
+       return new ApiResponse("error");
+    }
+
+    @RequestMapping(path = "/users/images/upload", method = RequestMethod.POST, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE } )
+    public ApiResponse uploadAvatar(@RequestParam MultipartFile file, @RequestParam Long userId, @RequestParam String token) {
+        if (validateToken(token) == true) {
+            try {
+                String uploadDir = "uploaded-images/";
+                String idName = "user"+userId.toString();
+                FileUploadService.saveFile(uploadDir, idName+".jpg", file);
+                return new ApiResponse("success");
+            }
+            catch (IOException e) { throw new RuntimeException(e); }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/stats/user/{id}")
+    public StatsDTO getStats(@PathVariable(value = "id") Long id, String token) {
+        User user = usersRepository.searchById(id);
+        StatsDTO stats = new StatsDTO();
+        if (validateToken(token) == true) {
+            stats.setTotalMessagesCount(messagesRepository.searchByMessageAuthor(user).size());
+            stats.setTotalThreadsCreated(threadsRepository.searchByThreadAuthor(user).size());
+            Calendar cal = Calendar.getInstance();
+            Timestamp currentDate = new Timestamp(cal.getTimeInMillis());
+            cal.add(Calendar.MONTH, -1);
+            Timestamp previousDate = new Timestamp(cal.getTimeInMillis());
+            stats.setMonthlyMessagesCount(messagesRepository.searchByMessageDatetimeBetweenAndMessageAuthor(previousDate, currentDate, user).size());
+            stats.setMonthlyThreadsCreated(threadsRepository.searchByThreadCreationTimeBetweenAndThreadAuthor(previousDate, currentDate, user).size());
+            return stats;
+        }
+        return stats;
+    }
+
+    @PostMapping("/change-password/app")
+    public ApiResponse changePasswordForApp(String token, String oldPassword, String newPassword, Long userId) throws JSONException {
+        if (oldPassword != null && oldPassword.length() >= 8 && newPassword != null && newPassword.length() >= 8 && validateToken(token) == true) {
+            User user = usersRepository.searchById(userId);
+            boolean checker = passwordEncoder.matches(oldPassword, user.getPassword());
+            if (checker == true) {
+                user.setPassword(passwordEncoder.encode(newPassword));
+                usersRepository.save(user);
+                return new ApiResponse("success");
+            }
+            else { return new ApiResponse("error"); }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/messages/thread/{id}/count-pages")
+    public ApiResponse getThreadMessagePagesCount(@PathVariable (value = "id") Long id, String token) {
+        if (validateToken(token) == true) {
+            Double threadCount = Double.valueOf(messagesRepository.searchByThread_Id(id).size());
+            Integer pagesCount = (int) Math.ceil(threadCount/10.0);
+            return new ApiResponse(pagesCount.toString());
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/messages/app/thread/{id}/page/{id2}")
+    public List<MessageAppDTO> findMessagesByThreadForApp(@PathVariable(value = "id") Long threadId, @PathVariable(value = "id2") Long page, String token) {
+        List<MessageAppDTO> dto = new ArrayList<>();
+        if (validateToken(token) == true) {
+            List<Messages> list = messagesService.getPage(Integer.valueOf(page.toString()), 10, threadsRepository.searchById(threadId)).getPage().getContent();
+            for (int i = 0; i < list.size(); i++) { dto.add(new MessageAppDTO(list.get(i), messageImageRepository)); }
+            return dto;
+        }
+        return dto;
+    }
+
+    @PostMapping("/messages/app/thread/{id}/search")
+    public List<MessageAppDTO> searchMessagesByThreadForApp(@PathVariable(value = "id") Long id, String token, String text) {
+        List<MessageAppDTO> dto = new ArrayList<>();
+        if (validateToken(token) == true) {
+            List<Messages> list = messagesRepository.searchByThread_IdAndMessageTextContainsOrMessageAuthor_Username(id, text, text);
+            for (int i = 0; i < list.size(); i++) { dto.add(new MessageAppDTO(list.get(i), messageImageRepository)); }
+            return dto;
+        }
+        return dto;
+    }
+
+    @PostMapping("/messages/post")
+    public MessageDTO postMessage(String token, String text, Timestamp datetime, Long threadId, Long userId, Long replyId) throws Exception {
+        if (validateToken(token) == true) {
+            try {
+                Messages message = new Messages();
+                message.setMessageText(text);
+                message.setMessageDatetime(datetime);
+                message.setThread(threadsRepository.searchById(threadId));
+                message.setMessageAuthor(usersRepository.searchById(userId));
+                if (replyId != null) { message.setMessageReply(messagesRepository.searchById(replyId)); }
+                messagesRepository.save(message);
+                return new MessageDTO(message);
+            }
+            catch (Exception e) { throw new Exception(e); }
+        }
+        return new MessageDTO();
+    }
+
+    @PostMapping("/users/app/{id}")
+    public UserAppDTO getUserForApp(@PathVariable(value = "id") Long id, String token) {
+        if (validateToken(token) == true) {
+            return new UserAppDTO(usersRepository.searchById(id));
+        }
+        return new UserAppDTO();
+    }
+
+    @PutMapping("/users/app/put")
+    public ApiResponse putUserForApp(String token, Long userId, String firstname, String middlename, String lastname, String description, int course, String specialization) {
+        User user = usersRepository.searchById(userId);
+        if (validateToken(token) == true && user != null) {
+            PersonalInformation userInfo = user.getUserInfo();
+            userInfo.setFirstname(firstname);
+            userInfo.setMiddlename(middlename);
+            userInfo.setLastname(lastname);
+            userInfo.setCourse(course);
+            userInfo.setDescription(description);
+            userInfo.setSpecialization(specializationsRepository.searchBySpecialization(specialization));
+            personalInformationRepository.save(userInfo);
+            return new ApiResponse("success");
+        }
+        return new ApiResponse("error");
+    }
+
+    @GetMapping("/specializations")
+    public List<SpecializationDTO> findAllSpecializations() {
+        List<SpecializationDTO> dto = new ArrayList<>();
+        List<Specializations> list = specializationsRepository.findAll();
+        for (int i = 0; i < list.size(); i++) { dto.add(new SpecializationDTO(list.get(i))); }
+        return dto;
+    }
+
+    @PostMapping("/login")
+    public ApiSessionsDTO loginAPI(String username, String password) {
+        User user = usersRepository.searchByUsername(username);
+        if (user != null) {
+            if (passwordEncoder.matches(password, user.getPassword()) == true) {
+                PasswordGenerator passwordGenerator = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build();
+                ApiSessions apiSession = new ApiSessions();
+                apiSession.setUser(user);
+                apiSession.setToken(passwordGenerator.generate(50));
+                apiSessionsRepository.save(apiSession);
+                return new ApiSessionsDTO(apiSession);
+            }
+            return new ApiSessionsDTO();
+        }
+        return new ApiSessionsDTO();
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse logoutApi(String token) {
+        if (validateToken(token) == true) {
+            apiSessionsRepository.delete(apiSessionsRepository.searchByToken(token));
+            return new ApiResponse("success");
+        }
+        else { return new ApiResponse("error"); }
+    }
+
+    @PostMapping("/registration")
+    public ApiResponse registerApi(String username, String email, String password, String firstname, String middlename,
+                                   String lastname, String description, String imageUrl, Integer course, Long specializationId) {
+        if (usersRepository.searchByEmail(email) == null && usersRepository.searchByUsername(username) == null) {
+            java.util.Date utilDate = new java.util.Date();
+            // Создание персональной информации
+            PersonalInformation userInfo = new PersonalInformation();
+            userInfo.setSpecialization(specializationsRepository.searchById(specializationId));
+            userInfo.setCourse(course);
+            userInfo.setLastname(lastname);
+            userInfo.setMiddlename(middlename);
+            userInfo.setFirstname(firstname);
+            userInfo.setDescription(description);
+            userInfo.setImageUrl(imageUrl);
+            personalInformationRepository.save(userInfo);
+            // Создание пользователя
+            User user = new User();
+            user.setUsername(username);
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setRoles(Collections.singleton(Role.USER));
+            user.setActive(false);
+            user.setDatetime(new java.sql.Date(utilDate.getTime()));
+            user.setUserInfo(userInfo);
+            usersRepository.save(user);
+            // Создание кода доступа
+            String code = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build().generate(8);
+            ResetCodes newCode = new ResetCodes();
+            newCode.setUser(user);
+            newCode.setResetCode(code);
+            resetCodesRepository.save(newCode);
+            String subject = "Подтверждение аккаунта";
+            String text = "Вы зарегестрировались на форуме мпт. Для подтверждения аккаунта введите код: "+code;
+            sendEmail(email, subject, text);
+            // Ответ
+            return new ApiResponse("success");
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/registration/confirm")
+    public ApiResponse registrationConfirmApi(String code) {
+        ResetCodes resetCode = resetCodesRepository.searchByResetCode(code);
+        if (resetCode != null) {
+            User user = resetCode.getUser();
+            user.setActive(true);
+            usersRepository.save(user);
+            resetCodesRepository.delete(resetCode);
+            return new ApiResponse("success");
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/restoration")
+    public ApiResponse restorationApi(String email) {
+        User user = usersRepository.searchByEmail(email);
+        if (user != null) {
+            if (user.isActive() == true && resetCodesRepository.searchByUser(user) == null) {
+                String code = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build().generate(8);
+                ResetCodes newCode = new ResetCodes();
+                newCode.setUser(user);
+                newCode.setResetCode(code);
+                resetCodesRepository.save(newCode);
+                String subject = "Восстановление пароля";
+                String text = "Ваш код для восстановления: "+code;
+                sendEmail(email, subject, text);
+                return new ApiResponse("success");
+            }
+            return new ApiResponse("error");
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/restoration/confirm")
+    public ApiResponse restorationConfirmApi(String code, String password) {
+        ResetCodes resetCode = resetCodesRepository.searchByResetCode(code);
+        if (resetCode != null) {
+            User user = resetCode.getUser();
+            user.setPassword(passwordEncoder.encode(password));
+            usersRepository.save(user);
+            resetCodesRepository.delete(resetCode);
+            return new ApiResponse("success");
+        }
+        return new ApiResponse("error");
+    }
+
+    //endregion
+
+    /*
 
     //region Threads
     @GetMapping("/threads")
@@ -44,28 +395,7 @@ public class ApiController {
         return dto;
     }
 
-    @GetMapping("/threads/count-pages")
-    public String getThreadsCount() {
-        Double threadCount = Double.valueOf(threadsRepository.count());
-        Integer pagesCount = (int) Math.ceil(threadCount/10.0);
-        return String.valueOf(pagesCount);
-    }
 
-    @GetMapping("/threads/page/{id}")
-    public List<ThreadDTO> getThreadsByPage(@PathVariable(value = "id") Integer id) {
-        List<Threads> list = threadsService.getPage(id, 10).getPage().getContent();
-        List<ThreadDTO> dto = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) { dto.add(new ThreadDTO(list.get(i))); }
-        return dto;
-    }
-
-    @PostMapping("/threads/search")
-    public List<ThreadDTO> searchThreads(String text) {
-        List<Threads> list = threadsRepository.searchByThreadAuthor_UsernameOrThreadNameContainsOrThreadDescriptionContains(text, text, text);
-        List<ThreadDTO> dto = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) { dto.add(new ThreadDTO(list.get(i))); }
-        return dto;
-    }
 
     @GetMapping("/threads/{id}")
     public ThreadDTO findThreadById(@PathVariable(value = "id") Long id) { return new ThreadDTO(threadsRepository.searchById(id)); }
@@ -78,19 +408,7 @@ public class ApiController {
         return dto;
     }
 
-    @PostMapping("/threads/post")
-    public String postThread(String name, String description, java.sql.Date creationTime, Long userId) {
-        try {
-            Threads thread = new Threads();
-            thread.setThreadName(name);
-            thread.setThreadDescription(description);
-            thread.setThreadCreationTime(creationTime);
-            thread.setThreadAuthor(usersRepository.searchById(userId));
-            threadsRepository.save(thread);
-            return "success";
-        }
-        catch (Exception e) { return "error"; }
-    }
+
 
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PutMapping("/threads/put")
@@ -134,14 +452,6 @@ public class ApiController {
         return dto;
     }
 
-    @GetMapping("/messages/app/thread/{id}")
-    public List<MessageAppDTO> findMessagesByThreadForApp(@PathVariable(value = "id") Long id) {
-        List<Messages> list = messagesRepository.searchByThread_Id(id);
-        List<MessageAppDTO> dto = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) { dto.add(new MessageAppDTO(list.get(i), messageImageRepository)); }
-        return dto;
-    }
-
     @GetMapping("/messages/{id}")
     public MessageDTO findMessageById(@PathVariable(value = "id") Long id) { return new MessageDTO(messagesRepository.searchById(id)); }
 
@@ -161,20 +471,7 @@ public class ApiController {
         return dto;
     }
 
-    @PostMapping("/messages/post")
-    public String postMessage(String text, Timestamp datetime, Long threadId, Long userId, Long replyId) {
-        try {
-            Messages message = new Messages();
-            message.setMessageText(text);
-            message.setMessageDatetime(datetime);
-            message.setThread(threadsRepository.searchById(threadId));
-            message.setMessageAuthor(usersRepository.searchById(userId));
-            message.setMessageReply(messagesRepository.searchById(replyId));
-            messagesRepository.save(message);
-            return "success";
-        }
-        catch (Exception e) { return "error"; }
-    }
+
 
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PutMapping("/messages/put")
@@ -221,6 +518,8 @@ public class ApiController {
 
     @GetMapping("/users/{id}")
     public UserDTO findUserById(@PathVariable(value = "id") Long id) { return new UserDTO(usersRepository.searchById(id)); }
+
+
 
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PostMapping("/users/post")
@@ -344,13 +643,7 @@ public class ApiController {
     //endregion
 
     //region Specializations
-    @GetMapping("/specializations")
-    public List<SpecializationDTO> findAllSpecializations() {
-        List<Specializations> list = specializationsRepository.findAll();
-        List<SpecializationDTO> dto = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) { dto.add(new SpecializationDTO(list.get(i))); }
-        return dto;
-    }
+
 
     @GetMapping("/specializations/{id}")
     public SpecializationDTO findSpecizalizationById(@PathVariable(value = "id") Long id) { return new SpecializationDTO(specializationsRepository.searchById(id)); }
@@ -768,4 +1061,7 @@ public class ApiController {
         catch (Exception e) { return "error"; }
     }
     //endregion
+
+    */
+
 }

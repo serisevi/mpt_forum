@@ -14,13 +14,18 @@ public class MessageDTO {
     private Long userId;
     private Long repliedMessageId;
 
+    public MessageDTO() {
+    }
+
     public MessageDTO(Messages message) {
         this.id = message.getId();
         this.messageText = message.getMessageText();
         this.messageDatetime = message.getMessageDatetime();
         this.threadId = message.getThread().getId();
         this.userId = message.getMessageAuthor().getId();
-        this.repliedMessageId = message.getMessageReply().getId();
+        Messages reply = message.getMessageReply();
+        if (reply != null) { this.repliedMessageId = reply.getId(); }
+        else { this.repliedMessageId = null; }
         this.username = message.getMessageAuthor().getUsername();
     }
 

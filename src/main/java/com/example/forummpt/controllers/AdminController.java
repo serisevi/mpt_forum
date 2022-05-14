@@ -26,28 +26,17 @@ import java.util.Objects;
 @PreAuthorize("hasAnyAuthority('ADMIN')")
 public class AdminController {
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
-    private ThreadsRepo threadsRepository;
-    @Autowired
-    private UsersRepo usersRepository;
-    @Autowired
-    private MessagesRepo messagesRepository;
-    @Autowired
-    private MessageImageRepo messageImagesRepository;
-    @Autowired
-    private PersonalInformationRepo personalInformationRepository;
-    @Autowired
-    private SpecializationsRepo specializationsRepository;
-    @Autowired
-    private LocalBanListRepo localBanListRepository;
-    @Autowired
-    private GlobalBanListRepo globalBanListRepository;
-    @Autowired
-    private  MessageImageRepo messageImageRepository;
-    @Autowired
-    private NotificationsRepo notificationsRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private ThreadsRepo threadsRepository;
+    @Autowired private UsersRepo usersRepository;
+    @Autowired private MessagesRepo messagesRepository;
+    @Autowired private MessageImageRepo messageImagesRepository;
+    @Autowired private PersonalInformationRepo personalInformationRepository;
+    @Autowired private SpecializationsRepo specializationsRepository;
+    @Autowired private LocalBanListRepo localBanListRepository;
+    @Autowired private GlobalBanListRepo globalBanListRepository;
+    @Autowired private  MessageImageRepo messageImageRepository;
+    @Autowired private NotificationsRepo notificationsRepository;
 
     @GetMapping("")
     public String adminGet(Model model){

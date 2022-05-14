@@ -13,7 +13,9 @@ public interface MessagesRepo extends JpaRepository<Messages, Long>{
     Messages searchById(Long id);
     List<Messages> searchByThread(Threads thread);
     List<Messages> searchByThreadAndMessageTextContains(Threads thread, String text);
+    List<Messages> searchByThread_IdAndMessageTextContainsOrMessageAuthor_Username(Long id, String text1, String text2);
     List<Messages> searchByMessageDatetimeBetween(Timestamp date1, Timestamp date2);
+    List<Messages> searchByMessageDatetimeBetweenAndMessageAuthor(Timestamp date1, Timestamp date2, User user);
     List<Messages> searchByMessageTextContains(String text1);
     List<Messages> searchByMessageAuthor(User user);
     List<Messages> searchByThread_Id(Long id);

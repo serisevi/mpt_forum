@@ -4,7 +4,9 @@ import com.example.forummpt.models.MessageImages;
 import com.example.forummpt.models.Messages;
 import com.example.forummpt.repo.MessageImageRepo;
 
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class MessageAppDTO {
@@ -12,6 +14,7 @@ public class MessageAppDTO {
         private long id;
         private Long threadId;
         private String username;
+        private String userImage;
         private Timestamp messageDatetime;
         private String messageText;
         private String replyText;
@@ -19,12 +22,16 @@ public class MessageAppDTO {
         private String images;
         private String replyImages;
 
-        public MessageAppDTO(Messages message, MessageImageRepo imagesRepo) {
+    public MessageAppDTO() {
+    }
+
+    public MessageAppDTO(Messages message, MessageImageRepo imagesRepo) {
             this.id = message.getId();
             this.messageText = message.getMessageText();
             this.messageDatetime = message.getMessageDatetime();
             this.threadId = message.getThread().getId();
             this.username = message.getMessageAuthor().getUsername();
+            this.userImage = message.getMessageAuthor().getUserInfo().getImageUrl();
             List<MessageImages> imagesList = imagesRepo.searchByMessageOrderById(message);
             String imagesUrls = "";
             for (int i = 0; i < imagesList.size(); i++) {
@@ -75,6 +82,14 @@ public class MessageAppDTO {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getUserImage() {
+        return userImage;
+    }
+
+    public void setUserImage(String userImage) {
+        this.userImage = userImage;
     }
 
     public Timestamp getMessageDatetime() {
