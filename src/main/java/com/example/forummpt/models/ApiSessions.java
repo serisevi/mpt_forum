@@ -11,8 +11,7 @@ public class ApiSessions {
     private User user;
     private String token;
 
-    public ApiSessions() {
-    }
+    public ApiSessions() {}
 
     public ApiSessions(long id, User user, String token) {
         this.id = id;
@@ -23,7 +22,6 @@ public class ApiSessions {
     public long getId() {
         return id;
     }
-
     public void setId(long id) {
         this.id = id;
     }
@@ -31,7 +29,6 @@ public class ApiSessions {
     public User getUser() {
         return user;
     }
-
     public void setUser(User user) {
         this.user = user;
     }
@@ -39,7 +36,6 @@ public class ApiSessions {
     public String getToken() {
         return token;
     }
-
     public void setToken(String token) {
         this.token = token;
     }

@@ -76,9 +76,9 @@ public class MessagesController {
             model.addAttribute("banListLink", "Список блокировок");
         }
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString().contains("[ADMIN]")) { model.addAttribute("delete", "Удалить"); }
         if (checkGlobalBan(user) == false) { return "MessagesByPage"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
@@ -102,9 +102,9 @@ public class MessagesController {
             model.addAttribute("banListLink", "Список блокировок");
         }
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString().contains("[ADMIN]")) { model.addAttribute("delete", "Удалить"); }
         if (checkGlobalBan(user) == false) { return "Thread"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
@@ -121,12 +121,15 @@ public class MessagesController {
         message.setMessageAuthor(user);
         message.setThread(thread);
         message.setMessageDatetime(new Timestamp(System.currentTimeMillis()));
+        message.setMessageReply(null);
+        messagesRepository.save(message);
         LocalBanList localBan = localBanListRepository.searchByBanThreadAndBannedUser(thread, user);
         if (text.equals("") == false && text != null && localBan == null) {
             if (globalBan == null || currentDate.after(globalBan.getBanExpireDate())) {
                 messagesRepository.save(message);
                 if (replyId != null) {
                     message.setMessageReply(messagesRepository.searchById(Long.valueOf(replyId)));
+                    messagesRepository.save(message);
                     Notifications notification = new Notifications();
                     notification.setText("На ваше сообщение ответил "+message.getMessageAuthor().getUsername());
                     notification.setNotificationRead(false);
@@ -141,7 +144,12 @@ public class MessagesController {
                             String fileName = StringUtils.cleanPath(files[i].getOriginalFilename());
                             if (fileName.equals("") == true) { break; }
                             else {
-                                int idName = (int) messageImageRepository.findAll(Sort.by(Sort.Direction.DESC, "id")).get(0).getId();
+                                int idName = -1;
+                                List<MessageImages> list = messageImageRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+                                if (list.size() != 0) {
+                                    idName = ((int)list.get(0).getId())+1;
+                                }
+                                else { idName = 1; }
                                 idName++;
                                 FileUploadService.saveFile(uploadDir, String.valueOf(idName)+".jpg", files[i]);
                                 String imagePath = "/"+uploadDir+idName+".jpg";
@@ -179,9 +187,9 @@ public class MessagesController {
             model.addAttribute("banListLink", "Список блокировок");
         }
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (checkGlobalBan(user) == false) { return "Thread"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
     }
@@ -220,9 +228,9 @@ public class MessagesController {
             Iterable<LocalBanList> bans = localBanListRepository.searchByBanThread(threadsRepository.searchById(idThread));
             model.addAttribute("bans", bans);
             if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-            else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-            if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-            else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+            else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+            if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+            else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
             if (checkGlobalBan(user) == false) { return "ThreadBanList"; }
             else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
         }

@@ -46,29 +46,40 @@ public class ApiController {
 
     //region App
 
-    private Boolean validateToken(String token) {
+    public Boolean validateToken(String token) {
         ApiSessions session = apiSessionsRepository.searchByToken(token);
-        if (session != null) { return true; } else { return  false; }
+        if (session != null && session.getUser().isActive() == true) {
+            GlobalBanList globalBan = globalBanListRepository.searchByBannedUser(session.getUser());
+            if (globalBan != null) {
+                if (globalBan.getBanExpireDate().after(new java.util.Date())) { return false; }
+                else { return true; }
+            }
+            return true;
+        }
+        else { return  false; }
     }
 
     private void sendEmail(String recipient, String subject, String text) {
         Properties props = new Properties();
-        props.put("mail.smtp.auth", true);
-        props.put("mail.smtp.starttls.enable", true);
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() { return new PasswordAuthentication("mptforumbot@gmail.com", "mptforum"); }
-                });
+        props.put("mail.smtp.host", "smtp.yandex.ru");
+        props.put("mail.smtp.ssl.enable", "true");
+        props.put("mail.smtp.port", 465);
+        props.put("mail.smtp.auth", "true");
+        Session session = Session.getDefaultInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("mptforumbot@yandex.ru","mptforum");
+            }
+        });
         try {
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("mptforumbot@gmail.com"));
+            message.setFrom(new InternetAddress("mptforumbot@yandex.ru"));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
             message.setSubject(subject);
             message.setText(text);
             Transport.send(message);
-        } catch (MessagingException e) { System.out.println(e.toString()); throw new RuntimeException(e); }
+        }
+        catch (MessagingException e) { System.out.println(e.toString()); throw new RuntimeException(e); }
     }
 
     @PostMapping("/threads/count-pages")
@@ -79,6 +90,15 @@ public class ApiController {
             return new ApiResponse(pagesCount.toString());
         }
         return new ApiResponse("error");
+    }
+
+    @PostMapping("/threads/{id}")
+    public ThreadDTO getThreadById(@PathVariable(value = "id") Long id, String token) {
+        if (validateToken(token) == true) {
+            Threads thread = threadsRepository.searchById(id);
+            if (thread != null) { return new ThreadDTO(thread); }
+        }
+        return new ThreadDTO();
     }
 
     @PostMapping("/threads/page/{id}")
@@ -141,17 +161,14 @@ public class ApiController {
     }
 
     @RequestMapping(path = "/users/images/upload", method = RequestMethod.POST, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE } )
-    public ApiResponse uploadAvatar(@RequestParam MultipartFile file, @RequestParam Long userId, @RequestParam String token) {
-        if (validateToken(token) == true) {
-            try {
-                String uploadDir = "uploaded-images/";
-                String idName = "user"+userId.toString();
-                FileUploadService.saveFile(uploadDir, idName+".jpg", file);
-                return new ApiResponse("success");
-            }
-            catch (IOException e) { throw new RuntimeException(e); }
+    public ApiResponse uploadAvatar(@RequestParam MultipartFile file, @RequestParam Long userId) {
+        try {
+            String uploadDir = "uploaded-images/";
+            String idName = "user"+userId.toString();
+            FileUploadService.saveFile(uploadDir, idName+".jpg", file);
+            return new ApiResponse("success");
         }
-        return new ApiResponse("error");
+        catch (IOException e) { throw new RuntimeException(e); }
     }
 
     @PostMapping("/stats/user/{id}")
@@ -276,11 +293,15 @@ public class ApiController {
         if (user != null) {
             if (passwordEncoder.matches(password, user.getPassword()) == true) {
                 PasswordGenerator passwordGenerator = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build();
-                ApiSessions apiSession = new ApiSessions();
-                apiSession.setUser(user);
-                apiSession.setToken(passwordGenerator.generate(50));
-                apiSessionsRepository.save(apiSession);
-                return new ApiSessionsDTO(apiSession);
+                ApiSessions apiSessions = apiSessionsRepository.searchByUser_Id(user.getId());
+                if (apiSessions == null) {
+                    apiSessions = new ApiSessions();
+                    apiSessions.setUser(user);
+                    apiSessions.setToken(passwordGenerator.generate(50));
+                    apiSessionsRepository.save(apiSessions);
+                    return new ApiSessionsDTO(apiSessions, usersRepository);
+                }
+                return new ApiSessionsDTO(apiSessions, usersRepository);
             }
             return new ApiSessionsDTO();
         }
@@ -298,18 +319,18 @@ public class ApiController {
 
     @PostMapping("/registration")
     public ApiResponse registerApi(String username, String email, String password, String firstname, String middlename,
-                                   String lastname, String description, String imageUrl, Integer course, Long specializationId) {
+                                   String lastname, String description, Integer course, String specialization) {
         if (usersRepository.searchByEmail(email) == null && usersRepository.searchByUsername(username) == null) {
             java.util.Date utilDate = new java.util.Date();
             // Создание персональной информации
             PersonalInformation userInfo = new PersonalInformation();
-            userInfo.setSpecialization(specializationsRepository.searchById(specializationId));
+            userInfo.setSpecialization(specializationsRepository.searchBySpecialization(specialization));
             userInfo.setCourse(course);
             userInfo.setLastname(lastname);
             userInfo.setMiddlename(middlename);
             userInfo.setFirstname(firstname);
             userInfo.setDescription(description);
-            userInfo.setImageUrl(imageUrl);
+            userInfo.setImageUrl("");
             personalInformationRepository.save(userInfo);
             // Создание пользователя
             User user = new User();
@@ -321,6 +342,8 @@ public class ApiController {
             user.setDatetime(new java.sql.Date(utilDate.getTime()));
             user.setUserInfo(userInfo);
             usersRepository.save(user);
+            userInfo.setImageUrl("/uploaded-images/user"+user.getId()+".jpg");
+            personalInformationRepository.save(userInfo);
             // Создание кода доступа
             String code = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build().generate(8);
             ResetCodes newCode = new ResetCodes();
@@ -331,7 +354,7 @@ public class ApiController {
             String text = "Вы зарегестрировались на форуме мпт. Для подтверждения аккаунта введите код: "+code;
             sendEmail(email, subject, text);
             // Ответ
-            return new ApiResponse("success");
+            return new ApiResponse(String.valueOf(user.getId()));
         }
         return new ApiResponse("error");
     }
@@ -354,7 +377,8 @@ public class ApiController {
         User user = usersRepository.searchByEmail(email);
         if (user != null) {
             if (user.isActive() == true && resetCodesRepository.searchByUser(user) == null) {
-                String code = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build().generate(8);
+                String code = new PasswordGenerator.PasswordGeneratorBuilder()
+                        .useDigits(true).useLower(true).useUpper(true).build().generate(8);
                 ResetCodes newCode = new ResetCodes();
                 newCode.setUser(user);
                 newCode.setResetCode(code);
@@ -378,6 +402,174 @@ public class ApiController {
             usersRepository.save(user);
             resetCodesRepository.delete(resetCode);
             return new ApiResponse("success");
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/message/delete")
+    public ApiResponse deleteMessage(String token, Long messageId) throws IOException {
+        if (validateToken(token) == true) {
+            User user = apiSessionsRepository.searchByToken(token).getUser();
+            Messages message = messagesRepository.searchById(messageId);
+            if (user.getRoles().toString().contains("ADMIN")) {
+                message.setMessageText("Сообщение было удалено");
+                messagesRepository.save(message);
+                List<MessageImages> images = messageImageRepository.searchByMessage_IdOrderById(messageId);
+                String uploadDir = "uploaded-images/";
+                for (int i = 0; i < images.size(); i++) {
+                    MessageImages it = images.get(i);
+                    FileUploadService.deleteFile(uploadDir, it.getImageUrl().replace("/uploaded-images/", ""));
+                    messageImageRepository.delete(it);
+                }
+                return new ApiResponse("success");
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/local-ban/apply")
+    public ApiResponse localBanUser(String token, Long messageId) {
+        if (validateToken(token) == true) {
+            Messages message =  messagesRepository.searchById(messageId);
+            Long bannedUserId = message.getMessageAuthor().getId();
+            User user = apiSessionsRepository.searchByToken(token).getUser();
+            User bannedUser = usersRepository.searchById(bannedUserId);
+            Threads thread = message.getThread();
+            if (user.getId() == bannedUserId || bannedUser == thread.getThreadAuthor() || bannedUser.getRoles().toString().contains("ADMIN")) { return new ApiResponse("error"); }
+            if (user.getRoles().toString().contains("ADMIN") || thread.getThreadAuthor() == user) {
+                LocalBanList localBan = localBanListRepository.searchByBanThreadAndBannedUser(thread, bannedUser);
+                if (localBan == null) {
+                    localBan = new LocalBanList();
+                    localBan.setBanThread(thread);
+                    localBan.setBannedUser(bannedUser);
+                    localBanListRepository.save(localBan);
+                }
+                return new ApiResponse("success");
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/local-ban/unban")
+    public ApiResponse localUnbanUser(String token, Long messageId) {
+        if (validateToken(token) == true) {
+            Messages message =  messagesRepository.searchById(messageId);
+            Long bannedUserId = message.getMessageAuthor().getId();
+            Threads thread = threadsRepository.searchById(message.getThread().getId());
+            User user = apiSessionsRepository.searchByToken(token).getUser();
+            User bannedUser = usersRepository.searchById(bannedUserId);
+            LocalBanList localBan = localBanListRepository.searchByBanThreadAndBannedUser(thread, bannedUser);
+            if (localBan != null && user.getRoles().toString().contains("ADMIN")) {
+                localBanListRepository.delete(localBan);
+                return new ApiResponse("success");
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/global-ban/apply")
+    public ApiResponse globalBanUser(String token, Long messageId, java.sql.Date start, java.sql.Date end, boolean loginBan, boolean writeBan) {
+        if (validateToken(token) == true) {
+            Messages message = messagesRepository.searchById(messageId);
+            User user = apiSessionsRepository.searchByToken(token).getUser();
+            if (end.before(start) || user.getId() == message.getMessageAuthor().getId()) { return new ApiResponse("error"); }
+            User bannedUser = usersRepository.searchById(message.getMessageAuthor().getId());
+            if (user.getRoles().toString().contains("ADMIN")) {
+                GlobalBanList globalBan = globalBanListRepository.searchByBannedUser(bannedUser);
+                if (globalBan == null) { globalBan = new GlobalBanList(); }
+                globalBan.setBannedUser(bannedUser);
+                globalBan.setBanStartDate(start);
+                globalBan.setBanExpireDate(end);
+                globalBan.setLoginBan(loginBan);
+                globalBan.setWriteBan(writeBan);
+                globalBanListRepository.save(globalBan);
+                return new ApiResponse("success");
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/global-ban/unban")
+    public ApiResponse globalUnbanUser(String token, Long messageId) {
+        if (validateToken(token) == true) {
+            User user = apiSessionsRepository.searchByToken(token).getUser();
+            User bannedUser = messagesRepository.searchById(messageId).getMessageAuthor();
+            if (user.getRoles().toString().contains("ADMIN")) {
+                GlobalBanList globalBan = globalBanListRepository.searchByBannedUser(bannedUser);
+                if (globalBan != null) {
+                    globalBanListRepository.delete(globalBan);
+                    return new ApiResponse("success");
+                }
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/notifications/read")
+    public List<NotificationDTO> getReadNotifications(String token) {
+        List<NotificationDTO> dto = new ArrayList<>();
+        if (validateToken(token) == true) {
+            ApiSessions session = apiSessionsRepository.searchByToken(token);
+            List<Notifications> list = notificationsRepository.searchByUserAndNotificationRead(session.getUser(), true);
+            for (int i = 0; i < list.size(); i++) { dto.add(new NotificationDTO(list.get(i))); }
+            return dto;
+        }
+        return dto;
+    }
+
+    @PostMapping("/notifications/unread")
+    public List<NotificationDTO> getUnreadNotifications(String token) {
+        List<NotificationDTO> dto = new ArrayList<>();
+        if (validateToken(token) == true) {
+            ApiSessions session = apiSessionsRepository.searchByToken(token);
+            List<Notifications> list = notificationsRepository.searchByUserAndNotificationRead(session.getUser(), false);
+            for (int i = 0; i < list.size(); i++) { dto.add(new NotificationDTO(list.get(i))); }
+            return dto;
+        }
+        return dto;
+    }
+
+    @PostMapping("/notifications/go-to")
+    public ApiResponse getNotificationThreadAndPage(String token, Long notificationId) {
+        if (validateToken(token) == true) {
+            Notifications notification = notificationsRepository.searchById(notificationId);
+            if (notification != null) {
+                notification.setNotificationRead(true);
+                notificationsRepository.save(notification);
+                Long threadId = notification.getMessage().getThread().getId();
+                int number = (int) Math.ceil((messagesRepository.searchByThread(notification.getMessage().getThread()).indexOf(notification.getMessage())+1.0)/10.0);
+                return new ApiResponse(String.valueOf(threadId)+","+String.valueOf(number));
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/notifications/read/clear")
+    public ApiResponse clearReadNotifications(String token) {
+        if (validateToken(token) == true) {
+            ApiSessions session = apiSessionsRepository.searchByToken(token);
+            if (session != null) {
+                List<Notifications> notifications = notificationsRepository.searchByUserAndNotificationRead(session.getUser(), true);
+                for (int i = 0; i < notifications.size(); i++) {
+                    notificationsRepository.delete(notifications.get(i));
+                }
+                return new ApiResponse("success");
+            }
+        }
+        return new ApiResponse("error");
+    }
+
+    @PostMapping("/notifications/unread/clear")
+    public ApiResponse clearUnreadNotifications(String token) {
+        if (validateToken(token) == true) {
+            ApiSessions session = apiSessionsRepository.searchByToken(token);
+            if (session != null) {
+                List<Notifications> notifications = notificationsRepository.searchByUserAndNotificationRead(session.getUser(), false);
+                for (int i = 0; i < notifications.size(); i++) {
+                    notificationsRepository.delete(notifications.get(i));
+                }
+                return new ApiResponse("success");
+            }
         }
         return new ApiResponse("error");
     }

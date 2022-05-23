@@ -13,6 +13,8 @@ public class ThreadDTO {
     private String username;
     private String avatar;
 
+    public ThreadDTO() {}
+
     public ThreadDTO(Threads thread) {
         this.id = thread.getId();
         this.threadName = thread.getThreadName();

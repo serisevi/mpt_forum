@@ -24,7 +24,7 @@ public class User implements UserDetails {
     private String email;
     private Date datetime;
     private boolean active;
-    @OneToOne(optional = true)
+    @OneToOne(optional = true, cascade = CascadeType.REMOVE)
     private PersonalInformation userInfo;
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

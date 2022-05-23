@@ -2,6 +2,7 @@ package com.example.forummpt.controllers;
 
 import com.example.forummpt.models.*;
 import com.example.forummpt.repo.*;
+import com.example.forummpt.services.PasswordGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,6 +38,7 @@ public class AdminController {
     @Autowired private GlobalBanListRepo globalBanListRepository;
     @Autowired private  MessageImageRepo messageImageRepository;
     @Autowired private NotificationsRepo notificationsRepository;
+    @Autowired private ApiSessionsRepo apiSessionsRepo;
 
     @GetMapping("")
     public String adminGet(Model model){
@@ -529,6 +531,51 @@ public class AdminController {
         }
         model.addAttribute("title","Админ-панель");
         return "redirect:/admin/notifications";
+    }
+
+    @GetMapping("/sessions")
+    public String adminSessionsPageGet(Model model) {
+        model.addAttribute("title","Админ-панель");
+        model.addAttribute("sessions", apiSessionsRepo.findAll());
+        return "AdminSessions";
+    }
+
+    @PostMapping("/sessions/searchByUserId")
+    public String adminSessionsSearchByUserId(Long search, Model model) {
+        model.addAttribute("title","Админ-панель");
+        model.addAttribute("sessions", apiSessionsRepo.searchByUser_Id(search));
+        return "AdminSessions";
+    }
+
+    @GetMapping("/sessions/delete/{id}")
+    public String adminSessionsDelete(@PathVariable (value = "id") Long id) {
+        apiSessionsRepo.delete(apiSessionsRepo.searchById(id));
+        return "redirect:/admin/sessions";
+    }
+
+    @PostMapping("/sessions/change/{id}")
+    public String adminSessionsChange(@PathVariable (value = "id") Long id, String token, Long userId, Model model) {
+        if (token.length() == 50 && userId != null) {
+            ApiSessions session = apiSessionsRepo.searchById(id);
+            session.setToken(token);
+            session.setUser(usersRepository.searchById(userId));
+            apiSessionsRepo.save(session);
+        }
+        model.addAttribute("title","Админ-панель");
+        return "redirect:/admin/sessions";
+    }
+
+    @PostMapping("/sessions/add")
+    public String adminSessionsAdd(Long userId, Model model) {
+        if (userId != null) {
+            ApiSessions session = new ApiSessions();
+            String token = new PasswordGenerator.PasswordGeneratorBuilder().useDigits(true).useLower(true).useUpper(true).build().generate(50);
+            session.setToken(token);
+            session.setUser(usersRepository.searchById(userId));
+            apiSessionsRepo.save(session);
+        }
+        model.addAttribute("title","Админ-панель");
+        return "redirect:/admin/sessions";
     }
 
 }

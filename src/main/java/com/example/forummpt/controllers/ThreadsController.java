@@ -35,9 +35,9 @@ public class ThreadsController {
         this.threadsService = threadsService;
     }
 
-    String accountPicture = "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album";
-    String noNotificationPicture = "https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album";
-    String notificationPicture = "https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album";
+    String accountPicture = "/uploaded-images/basicavatar.jpg";
+    String noNotificationPicture = "/uploaded-images/ntfread.jpg";
+    String notificationPicture = "/uploaded-images/ntfunread.jpg";
 
     public boolean checkGlobalBan(User user) {
         GlobalBanList globalBan = globalBanListRepository.searchByBannedUser(user);

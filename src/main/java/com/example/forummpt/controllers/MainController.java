@@ -4,7 +4,6 @@ import com.example.forummpt.models.*;
 import com.example.forummpt.repo.*;
 import com.example.forummpt.services.FileUploadService;
 import com.example.forummpt.services.PasswordGenerator;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,26 +17,19 @@ import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
-import java.io.File;
 import java.util.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.util.List;
-import javax.imageio.ImageIO;
 
 @Controller
 public class MainController {
 
     //region Repositories
     @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private ThreadsRepo threadsRepository;
     @Autowired private UsersRepo usersRepository;
     @Autowired private MessagesRepo messagesRepository;
     @Autowired private PersonalInformationRepo personalInformationRepository;
     @Autowired private SpecializationsRepo specializationsRepository;
-    @Autowired private LocalBanListRepo localBanListRepository;
     @Autowired private GlobalBanListRepo globalBanListRepository;
-    @Autowired private MessageImageRepo messageImageRepository;
     @Autowired private NotificationsRepo notificationsRepository;
     @Autowired private ResetCodesRepo resetCodesRepository;
     //endregion
@@ -57,22 +49,25 @@ public class MainController {
 
     private void sendEmail(String recipient, String subject, String text) {
         Properties props = new Properties();
-        props.put("mail.smtp.auth", true);
-        props.put("mail.smtp.starttls.enable", true);
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() { return new PasswordAuthentication("mptforumbot@gmail.com", "mptforum"); }
-                });
+        props.put("mail.smtp.host", "smtp.yandex.ru");
+        props.put("mail.smtp.ssl.enable", "true");
+        props.put("mail.smtp.port", 465);
+        props.put("mail.smtp.auth", "true");
+        Session session = Session.getDefaultInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("mptforumbot@yandex.ru","mptforum");
+            }
+        });
         try {
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("mptforumbot@gmail.com"));
+            message.setFrom(new InternetAddress("mptforumbot@yandex.ru"));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
             message.setSubject(subject);
             message.setText(text);
             Transport.send(message);
-        } catch (MessagingException e) { System.out.println(e.toString()); throw new RuntimeException(e); }
+        }
+        catch (MessagingException e) { System.out.println(e.toString()); throw new RuntimeException(e); }
     }
 
     @GetMapping("/error")
@@ -137,7 +132,7 @@ public class MainController {
                 Specializations spec = specializationsRepository.searchBySpecialization(specialization);
                 userInfo.setSpecialization(spec);
                 userInfo.setCourse(course);
-                userInfo.setImageUrl("https://static.vecteezy.com/system/resources/previews/000/512/866/original/vector-student-glyph-black-icon.jpg");
+                userInfo.setImageUrl("/uploaded-images/basicavatar.jpg");
                 personalInformationRepository.save(userInfo);
                 user.setUserInfo(userInfo);
                 usersRepository.save(user);
@@ -235,9 +230,9 @@ public class MainController {
         Iterable<Specializations> specializations = specializationsRepository.findAll();
         model.addAttribute("specializations", specializations);
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (checkGlobalBan(user) == false) { return "Account"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
     }
@@ -248,9 +243,9 @@ public class MainController {
         User user = usersRepository.searchByUsername(SecurityContextHolder.getContext().getAuthentication().getName().toString());
         model.addAttribute("users", user);
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (checkGlobalBan(user) == false) { return "Account"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
     }
@@ -295,9 +290,9 @@ public class MainController {
         model.addAttribute("title","Профиль");
         model.addAttribute("users", user);
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (checkGlobalBan(user) == false) { return "Account"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
     }
@@ -310,9 +305,9 @@ public class MainController {
         User user = usersRepository.searchByUsername(SecurityContextHolder.getContext().getAuthentication().getName().toString());
         if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString().contains("[ADMIN]")) { model.addAttribute("globalBan", "Заблокировать"); }
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (checkGlobalBan(user) == false) { return "UserProfile"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
     }
@@ -325,9 +320,9 @@ public class MainController {
         User user = usersRepository.searchByUsername(SecurityContextHolder.getContext().getAuthentication().getName().toString());
         if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString().contains("[ADMIN]")) { model.addAttribute("globalBan", "Заблокировать"); }
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         if (checkGlobalBan(user) == false) { return "UserProfile"; }
         else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
     }
@@ -339,9 +334,9 @@ public class MainController {
         if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString().contains("[ADMIN]")) {
             model.addAttribute("user", bannedUser);
             if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-            else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-            if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-            else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+            else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+            if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+            else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
             if (checkGlobalBan(user) == false) { return "GlobalBan"; }
             else { model.addAttribute("message","Вы временно заблокированы"); return "Authorization"; }
         }
@@ -373,9 +368,9 @@ public class MainController {
     public String notificationsPageGet(Model model) {
         User user = usersRepository.searchByUsername(SecurityContextHolder.getContext().getAuthentication().getName().toString());
         if (user.getUserInfo() != null && user.getUserInfo().getImageUrl() != null && user.getUserInfo().getImageUrl() != "") { model.addAttribute("imgSrc", user.getUserInfo().getImageUrl()); }
-        else { model.addAttribute("imgSrc", "https://sun9-70.userapi.com/impg/r2f8M04uAD5w5LwiKnpRFL-L_87ICNTubnM4PA/YH9jcVk9oKc.jpg?size=512x512&quality=96&sign=a5a5a1618e046adf8f4a067f70a77826&type=album"); }
-        if (checkNotification(user) == true) { model.addAttribute("imgNtf","https://sun9-7.userapi.com/impf/AnRJAczQopk6loErvjJnC74Q4kW9vCRvTRqbcA/MT9oJSMvPKk.jpg?size=268x273&quality=96&sign=69342b74aa7688b6683417678ee6e541&type=album"); }
-        else { model.addAttribute("imgNtf","https://sun9-8.userapi.com/impf/boLC2lY0cXiOCAc9BGL99Vpc-dH1SOd4e54hxA/is9g3PWO9GM.jpg?size=233x267&quality=96&sign=c16885d9baded99de18c7b941d9a89ba&type=album"); }
+        else { model.addAttribute("imgSrc", "/uploaded-images/basicavatar.jpg"); }
+        if (checkNotification(user) == true) { model.addAttribute("imgNtf","/uploaded-images/ntfunread.jpg"); }
+        else { model.addAttribute("imgNtf","/uploaded-images/ntfread.jpg"); }
         model.addAttribute("title","Оповещения");
         model.addAttribute("read", notificationsRepository.searchByUserAndNotificationRead(user, true));
         model.addAttribute("unread", notificationsRepository.searchByUserAndNotificationRead(user, false));

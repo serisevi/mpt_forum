@@ -8,28 +8,23 @@
 
     <style>
 
-        .form-signin {
-            background-color: white;
-            border-radius: 25px;
-        }
-
-        .btn-primary {
-            border-radius: 10px;
-        }
-
-        #intro {
-            background-image: url("https://sun9-70.userapi.com/impg/Qf1MPsg4TYmJMgUdb7xomOfcy-LpEQTnil8Jdw/SjcSM_3FjTY.jpg?size=2560x1096&quality=96&sign=c4a12f50e3e808310cc894fade401e61&type=album");
-            background-size: auto;
-        }
-        @media (min-width: 1920px) {
-            #intro {
-                margin-top: -58.59px;
-            }
-        }
-        body {
-            margin-top: 13%;
+        html, body {
+            width: 100%;
             height: 100%;
+            min-width: 1280px;
+            min-height: 500px;
+            background-image: url(/uploaded-images/mptback.jpg);
+            background-size: cover;
         }
+
+        .vertical-center {
+            min-height: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-primary { border-radius: 10px; }
 
         #error { color: red; }
 
@@ -44,6 +39,8 @@
             margin: auto;
             vertical-align: center;
             alignment: center;
+            background-color: white;
+            border-radius: 25px;
         }
 
         .form-signin .form-floating:focus-within {
@@ -55,23 +52,25 @@
 </head>
 <body class="h-100 text-center" id="intro">
 
-<main class="form-signin">
-    <form th:action="@{/registration/confirm}" method="post">
-        <img class="mb-1" src="https://ucmpt.ru/wp-content/uploads/2019/02/%D0%9B%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF.png" alt="" width="100" height="100">
-        <h3 class="mb-2 fw-normal">Подтверждение аккаунта</h3>
-        <span th:text="${error}" id="error"></span>
-        <span th:text="${message}" id="message"></span>
-        <div class="container">
-            <div class="row">
-                <div class="form-floating">
-                    <input type="text" class="form-control" id="floatingCode" placeholder="f" name="code">
-                    <label for="floatingCode">Код подтверждения</label>
+<div class="jumbotron vertical-center">
+    <div class="form-signin">
+        <form th:action="@{/registration/confirm}" method="post">
+            <img class="mb-1" src="https://ucmpt.ru/wp-content/uploads/2019/02/%D0%9B%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF.png" alt="" width="100" height="100">
+            <h3 class="mb-2 fw-normal">Подтверждение аккаунта</h3>
+            <span th:text="${error}" id="error"></span>
+            <span th:text="${message}" id="message"></span>
+            <div class="container">
+                <div class="row">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="floatingCode" placeholder="f" name="code">
+                        <label for="floatingCode">Код подтверждения</label>
+                    </div>
                 </div>
+                <button type="submit" class="w-100 mb-1 btn-lg btn-primary">Подтвердить</button>
             </div>
-            <button type="submit" class="w-100 mb-1 btn-lg btn-primary">Подтвердить</button>
-        </div>
-    </form>
-</main>
+        </form>
+    </div>
+</div>
 
 </body>
 </html>

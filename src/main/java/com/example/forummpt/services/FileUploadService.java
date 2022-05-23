@@ -22,4 +22,10 @@ public class FileUploadService {
         }
     }
 
+    public static void deleteFile(String uploadDir, String fileName) throws IOException {
+        Path uploadPath = Paths.get(uploadDir);
+        try { Files.delete(uploadPath.resolve(fileName)); }
+        catch (IOException ioe) { throw new IOException("Could not save image file: " + fileName, ioe); }
+    }
+
 }
