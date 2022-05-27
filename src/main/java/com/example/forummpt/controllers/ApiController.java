@@ -240,13 +240,21 @@ public class ApiController {
     public MessageDTO postMessage(String token, String text, Timestamp datetime, Long threadId, Long userId, Long replyId) throws Exception {
         if (validateToken(token) == true) {
             try {
+                User user = usersRepository.searchById(userId);
                 Messages message = new Messages();
                 message.setMessageText(text);
                 message.setMessageDatetime(datetime);
                 message.setThread(threadsRepository.searchById(threadId));
-                message.setMessageAuthor(usersRepository.searchById(userId));
+                message.setMessageAuthor(user);
                 if (replyId != null) { message.setMessageReply(messagesRepository.searchById(replyId)); }
                 messagesRepository.save(message);
+                if (replyId != null) {
+                    Notifications notification = new Notifications();
+                    notification.setMessage(message);
+                    notification.setUser(messagesRepository.searchById(replyId).getMessageAuthor());
+                    notification.setText("На ваше сообщение ответил "+user.getUsername());
+                    notificationsRepository.save(notification);
+                }
                 return new MessageDTO(message);
             }
             catch (Exception e) { throw new Exception(e); }
